@@ -1,20 +1,25 @@
-BEGIN {
-foreach (qw(..  .  ../..)) {
-    last if -e ($conf = "$_/config");
-}
-eval { require "$conf"; };
-die $@ if $@;
-}
+use ExtUtils::testlib;
+use DCE::test;
 use DCE::Registry;
+use DCE::Status 'error_string';
 
-($rgy, $status) = DCE::Registry->site_open_update($site_name);
+my($rgy, $status) = DCE::Registry->site_open_update;
+
+if($status != DCE::Registry->status_ok) {
+    warn sprintf "Skipping tests: %s\n", error_string($status);
+    print "1..1\n";
+    print "ok 1\n";
+    exit(0);
+}
+print "1..5\n";
+
 $domain = $rgy->domain_group;
 $name = "dce_perl";
-$person = "root";
+$person = "cell_admin";
 
-($is_mem,$status) = $rgy->pgo_is_member($domain, $name, $person);
-#test ++$i, $status;
-print "is_mem $is_mem\n";
+#($is_mem,$status) = $rgy->pgo_is_member($domain, $name, $person);
+#test ++$i, (not $is_mem);
+#trace "is_mem $is_mem\n";
 
 $pgo_item = {
    uuid => "",
@@ -32,7 +37,7 @@ test ++$i, $status;
 
 ($is_mem,$status) = $rgy->pgo_is_member($domain, $name, $person);
 test ++$i, $status;
-print "is_mem $is_mem\n";
+trace "is_mem $is_mem\n";
 
 $status = $rgy->pgo_delete_member($domain, $name, $person);
 test ++$i, $status;

@@ -12,7 +12,7 @@ require DynaLoader;
    &uuid_create &uuid_hash
 );
 
-#use overload '""' => sub { shift->as_string; };
+use overload '""' => sub { shift->as_string; };
 
 $VERSION = '1.01';
 

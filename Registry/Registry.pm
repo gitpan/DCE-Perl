@@ -1,22 +1,28 @@
 package DCE::Registry;
 
 use vars qw($VERSION @ISA);
-require DynaLoader;
-require DCE::rgybase;
+use DynaLoader ();
+use DCE::rgybase ();
+use DCE::UUID ();
 
 @ISA = qw(DynaLoader DCE::rgybase);
 
-$VERSION = '1.01';
+$VERSION = "1.02";
 
 #why the heck doesn't this get inherited?
 *AUTOLOAD = \&DCE::rgybase::AUTOLOAD;
 
-sub status {$DCE::status}
+sub sec_passwd_none{0}
+sub sec_passwd_plain{1}
+sub sec_passwd_des{2}
+sub no_more_entries{387063929} #for now
 
-sub sec_passwd_none{0};
-sub sec_passwd_plain{1};
-sub sec_passwd_des{2};
-sub no_more_entries{387063929}; #for now
+sub p {0}
+sub g {1}
+sub o {2}
+
+my(%domain) = (user => 0, group => 1, org => 3);
+sub domain { $domain{$_[1]} }
 
 bootstrap DCE::Registry;
 

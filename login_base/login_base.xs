@@ -9,7 +9,9 @@ extern "C" {
 #endif
 
 #include <dce/sec_login.h>
+#ifdef HPUX
 #include <dce/sec_login_base.h>
+#endif
 
 static int
 not_here(s)
@@ -19,7 +21,7 @@ char *s;
     return -1;
 }
 
-static double
+static long
 constant(name, arg)
 char *name;
 int arg;

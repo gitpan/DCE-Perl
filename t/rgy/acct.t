@@ -1,28 +1,42 @@
-BEGIN {
-foreach (qw(..  .  ../..)) {
-    last if -e ($conf = "$_/config");
-}
-eval { require "$conf"; };
-die $@ if $@;
-}
+use ExtUtils::testlib;
+use DCE::test;
 use DCE::Registry;
+use DCE::Status 'error_string';
+
+#$caller_key = password_prompt; 
+#Test::Harness hides all output unless we are in verbose mode
+#we skip these tests unless you supply a password here
+ 
+$caller_key = "" || $ENV{DCE_PERL_TEST_PW};
 
 $pgo_item = {
-    uuid => $uuid,
-    unix_num => 16025,
+    uuid => "",
+    unix_num => 16987,
     quota => -1,
     flags => 0,
     fullname => "DCE-Perl",
 };
 
-($rgy, $status) = DCE::Registry->site_open_update($site_name);
+($rgy, $status) = DCE::Registry->site_open_update;
+
+unless ($caller_key) {
+    $status = -1;
+    $es = "No password for caller\n";
+}
+
+if($status != DCE::Registry->status_ok) {
+    $es ||= error_string $status;
+    warn sprintf "(Skipping tests: %s)", $es;
+    print "1..1\n";
+    print "ok 1\n";
+    exit(0);
+}
+
+print "1..9\n";
 
 $domain = $rgy->domain_person;
 $name = "dce_perl"; 
 test ++$i, $status;
-if($ARGV[0] eq "d") {
-    $rgy->pgo_delete($domain, $name); exit();
-}
 
 $rgy->pgo_add($domain, $name, $pgo_item);
 test ++$i, $status;
@@ -31,29 +45,32 @@ $domain = $rgy->domain_group;
 $group = "none";
 foreach $domain ($rgy->domain_group, $rgy->domain_org) {
     $status = $rgy->pgo_add_member($domain, $group, $name);
+    test ++$i, $status;
 }
 
-test ++$i, $status;
-
-$cursor = new DCE::cursor;
+$cursor = $rgy->cursor;
 $login_name = { 
     pname => $name,
     gname => "none",
     oname => "none",
 };
 
+$new_key = "-dce_perl-";    #new user's password
+
 $user_part = {
     gecos => "",
     homedir => "/",
     shell => "/bin/sh",
     passwd_version_number => 0,
-    passwd => "-dce_perl-",
+    passwd => $new_key,
     flags => $rgy->acct_user_passwd_valid,
 };
 
 $admin_part = {
     good_since_date => time(),
     expiration_date => 0,
+    flags => 0,
+    authentication_flags => 0,
 };
 
 $admin_part->{flags} |= $rgy->acct_admin_valid;
@@ -65,8 +82,6 @@ $admin_part->{authentication_flags} |= $rgy->acct_auth_tgt;
 
 $key_parts = $rgy->acct_key_person;
 
-$caller_key = ""; #admin's password
-$new_key = "";    #new user's password
 
 $new_keytype = $rgy->sec_passwd_des;
 

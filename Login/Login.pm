@@ -16,6 +16,10 @@ bootstrap DCE::Login $VERSION;
 #why the heck doesn't this get inherited?
 *AUTOLOAD = \&DCE::login_base::AUTOLOAD;
 
+sub auth_src_network {0}
+sub auth_src_local {1}
+sub auth_src_overridden {2}
+
 # Autoload methods go after =cut, and are processed by the autosplit program.
 
 1;

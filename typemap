@@ -1,9 +1,20 @@
+perlrpcsub		T_PV
 DCE::Registry		T_PTROBJ
 DCE::cursor		T_PTROBJ
+DCE::RegistryCursor	T_PTROBJ
 DCE::Login		T_PTROBJ
-DCE::UUID		T_PTROBJ
+DCE::UUID 		T_PTROBJ
+DCE::RPC		T_PTROBJ
+DCE::login_name		T_PTROBJ
 uuid_t			T_PTR
+uuid_t *		T_PTR
+handle_t		T_PTROBJ
+rpc_auth_identity_handle_t	T_PTR
+rpc_if_handle_t		T_PTROBJ
+rpc_ns_handle_t		T_PTROBJ
+rpc_ns_handle_t	*	T_PTR
 unsigned_char_p_t	T_PV
+unsigned_char_p_t *	T_PV
 sec_login_flags_t	T_IV
 boolean32		T_IV
 sec_login_handle_t *	T_PTROBJ

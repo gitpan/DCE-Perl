@@ -1,6 +1,6 @@
 #include "../DCE_Perl.h"
 
-/* $Id: Registry.xs,v 1.10 1996/07/08 13:38:51 dougm Exp dougm $ */
+/* $Id: Registry.xs,v 1.14 1996/11/18 15:33:45 dougm Exp $ */
 
 #define FETCH_AUTH_INFO \
   info = (HV*)SvRV(hash_ref);  \
@@ -57,12 +57,10 @@
     svp = hv_fetch(hv, "flags", 5, 1); \
     user_part.flags = SvIV(*svp)
 
+/*  pgo_item.id = uuid_struct; \ */
 
 #define FETCH_PGO_ITEM \
   info = (HV*)SvRV(hash_ref);  \
-  svp = hv_fetch(info, "uuid", 4, 1); \
-  uuid_from_string((char *)SvPV(*svp,len), &uuid_struct, &uuid_status); \
-  pgo_item.id = uuid_struct; \
   svp = hv_fetch(info, "unix_num", 8, 1); \
   pgo_item.unix_num = (signed32 )SvIV(*svp); \
   svp = hv_fetch(info, "quota", 5, 1); \
@@ -70,16 +68,25 @@
   svp = hv_fetch(info, "flags", 5, 1); \
   pgo_item.flags = (sec_rgy_pgo_flags_t )SvIV(*svp); \
   svp = hv_fetch(info, "fullname", 8, 1); \
-  strncpy(pgo_item.fullname, (char *)SvPV(*svp,len), 256)
+  strncpy(pgo_item.fullname, (char *)SvPV(*svp,na), 256); \
+  svp = hv_fetch(info, "uuid", 4, 1); \
+  UUIDmagic_sv(pgo_item.id, *svp);  
+
+/*   BLESS_UUID(pgo_item.id); \   */
 
 #define STORE_PGO_ITEM \
-   uuid_to_string(&(pgo_item.id), &uuid, &uuid_status); \
-   hv = (HV*)sv_2mortal((SV*)newHV()); \
-   hv_store(hv,"id", 2, newSVpv(uuid,0),0);       \
+   iniHV; \
    hv_store(hv,"quota",5,newSViv((IV)pgo_item.quota),0); \
    hv_store(hv,"unix_num",8,newSViv((IV)pgo_item.unix_num),0); \
    hv_store(hv,"flags",5,newSViv((IV)pgo_item.flags),0); \
    hv_store(hv,"fullname", 8, newSVpv(pgo_item.fullname,0),0); \
+   {\
+       unsigned_char_t *uuid_str; \
+       error_status_t  uuid_str_status; \
+       uuid_to_string(&pgo_item.id, &uuid_str, &uuid_str_status); \
+       uuid_sv = newSVpv((unsigned_char_t *)uuid_str, 0); \
+       hv_store(hv, "id", 2, (SV*)uuid_sv, 0); \
+   } \
    rv = newRV((SV*)hv)
 
 #define STORE_POLICY_DATA \
@@ -91,6 +98,8 @@
    hv_store(hv,"passwd_flags",12,newSViv(policy_data.passwd_flags),0); \
    XPUSHs(newRV((SV*)hv)); \
    DCESTATUS
+
+typedef sec_rgy_login_name_t * DCE__login_name;
 
 MODULE = DCE::Registry  PACKAGE = DCE::Registry  PREFIX = sec_rgy_
 PROTOTYPES: DISABLE
@@ -107,7 +116,7 @@ sec_rgy_DESTROY(rgy_context)
   }
 
 void
-sec_rgy_site_bind(package="DCE::Registry",site_name,hash_ref)
+sec_rgy_site_bind(package="DCE::Registry",site_name="",hash_ref=&sv_undef)
   char *	package
   char *	site_name
   SV *	hash_ref
@@ -128,7 +137,7 @@ sec_rgy_site_bind(package="DCE::Registry",site_name,hash_ref)
   }
 
 void
-sec_rgy_cell_bind(package="DCE::Registry",cell_name,hash_ref)
+sec_rgy_cell_bind(package="DCE::Registry",cell_name="",hash_ref=&sv_undef)
   char *	package
   char *	cell_name
   SV *	hash_ref
@@ -150,7 +159,7 @@ sec_rgy_cell_bind(package="DCE::Registry",cell_name,hash_ref)
 
 
 void
-sec_rgy_site_bind_query(package="DCE::Registry",site_name,hash_ref)
+sec_rgy_site_bind_query(package="DCE::Registry",site_name="",hash_ref=&sv_undef)
   char *	package
   char *	site_name
   SV *	hash_ref
@@ -171,7 +180,7 @@ sec_rgy_site_bind_query(package="DCE::Registry",site_name,hash_ref)
   }
 
 void
-sec_rgy_site_bind_update(package="DCE::Registry",site_name,hash_ref)
+sec_rgy_site_bind_update(package="DCE::Registry",site_name="",hash_ref=&sv_undef)
   char *	package
   char *	site_name
   SV *	hash_ref
@@ -193,7 +202,7 @@ sec_rgy_site_bind_update(package="DCE::Registry",site_name,hash_ref)
 
 
 void
-sec_rgy_site_open(package="DCE::Registry",site_name)
+sec_rgy_site_open(package="DCE::Registry",site_name="")
   char *	package
   char *	site_name
 
@@ -209,7 +218,7 @@ sec_rgy_site_open(package="DCE::Registry",site_name)
   }
 
 void
-sec_rgy_site_open_query(package="DCE::Registry",site_name)
+sec_rgy_site_open_query(package="DCE::Registry",site_name="")
   char *	package
   char *	site_name
 
@@ -225,7 +234,7 @@ sec_rgy_site_open_query(package="DCE::Registry",site_name)
   }
 
 void
-sec_rgy_site_open_update(package="DCE::Registry",site_name)
+sec_rgy_site_open_update(package="DCE::Registry",site_name="")
   char *	package
   char *	site_name
 
@@ -256,18 +265,18 @@ sec_rgy_site_binding_get_info(rgy_context)
     sec_rgy_site_binding_get_info(rgy_context, &cell_name, 
 		&server_name, &string_binding, &auth_info, &status);
 
-    if(status != 0) {
-      DCESTATUS;
-      return;
+    CHK_STS(3);
+
+    if(WANTARRAY) {
+	EXTEND(sp, 3);
+	PUSHs_pv(cell_name);
+	PUSHs_pv(server_name);
+	PUSHs_pv(string_binding);
+	DCESTATUS;
     }
-
-    EXTEND(sp, 3);
-    PUSHs_pv(cell_name);
-    PUSHs_pv(server_name);
-    PUSHs_pv(string_binding);
-    DCESTATUS;
+    else
+	PUSHs_pv(cell_name);
   }
-
 
 unsigned_char_t *
 sec_rgy_site_get(rgy_context)
@@ -281,7 +290,8 @@ sec_rgy_site_get(rgy_context)
     sec_rgy_site_get(rgy_context, &site_name, &status);
 
     XPUSHs_pv(site_name);
-    DCESTATUS;
+    if(WANTARRAY)
+	DCESTATUS;
   }
 
 void
@@ -315,15 +325,18 @@ sec_rgy_pgo_unix_num_to_id(rgy_context, domain, unix_num)
 
   PPCODE:
   {
-    uuid_t uuid_struct;
-    error_status_t uuid_status, status;
-    unsigned char *uuid;
+   uuid_t uuid_struct;
+   error_status_t status;
+   SV *uuid_sv;
 
-    sec_rgy_pgo_unix_num_to_id(rgy_context, domain, unix_num, 
+   sec_rgy_pgo_unix_num_to_id(rgy_context, domain, unix_num, 
 			       &uuid_struct, &status);
-    uuid_to_string(&uuid_struct, &uuid, &uuid_status);
-    XPUSHs_pv(uuid);
-    DCESTATUS;
+
+   BLESS_UUID_mortal(uuid_struct);
+   XPUSHs(uuid_sv); 
+
+    if(WANTARRAY) 
+	DCESTATUS;
   }
 
 void
@@ -339,58 +352,53 @@ sec_rgy_pgo_unix_num_to_name(rgy_context, domain, unix_num)
     name = (char *) malloc(sizeof(char)* 1025);
     sec_rgy_pgo_unix_num_to_name(rgy_context, domain, unix_num, name, &status);
     XPUSHs_pv(name);
-    DCESTATUS;
+
+    if(WANTARRAY) 
+	DCESTATUS;
   }
 
 void
 sec_rgy_pgo_id_to_unix_num(rgy_context, domain, uuid)
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
-  unsigned char *	uuid
+  SV  *uuid
 
   PPCODE:
   {
     uuid_t  uuid_struct;
     error_status_t	uuid_status;
-    long	unix_id;
+    signed32	unix_id;
     error_status_t	status;
 
-    uuid_from_string(uuid, &uuid_struct, &uuid_status);
-    if(uuid_status != 0) {
-      DCESTATUS;
-      return;
-    }
-
+    UUIDmagic_sv(uuid_struct, uuid);
     sec_rgy_pgo_id_to_unix_num(rgy_context, domain, &uuid_struct, 
 			       &unix_id, &status);
     XPUSHs_iv(unix_id);
-    DCESTATUS;
+
+    if(WANTARRAY) 
+	DCESTATUS;
   }
 
 void
 sec_rgy_pgo_id_to_name(rgy_context, domain, item_id)
   DCE::Registry		rgy_context
   sec_rgy_domain_t	domain
-  char *	item_id
+  SV *item_id
 
   PPCODE:
   {
     error_status_t	status;
-    uuid_t	uuid;
+    uuid_t              uuid;
     sec_rgy_name_t	pgo_name;
     sec_rgy_name_t      retval;
-    /* printf("UUID here is: %s\n", item_id); */
-    uuid_from_string(item_id, &uuid, &status);
-    if(status != 0) {
-      DCESTATUS;
-      return;
-    }
-    
+
+    UUIDmagic_sv(uuid, item_id);
     sec_rgy_pgo_id_to_name(rgy_context, domain, &uuid, pgo_name, &status);
-    strncpy(retval, pgo_name, 1024);
+    strncpy(retval, pgo_name, 1024); 
 
     XPUSHs_pv(retval);
-    DCESTATUS;	
+    if(WANTARRAY) 
+	DCESTATUS;	
   }
 
 void
@@ -401,14 +409,14 @@ sec_rgy_pgo_name_to_unix_num(rgy_context, domain, name)
 
   PPCODE:
   {
-    long	unix_id;
+    signed32	unix_id;
     error_status_t	status;
 
     sec_rgy_pgo_name_to_unix_num(rgy_context, domain, name, &unix_id, &status);
-    DCESTATUS;
-    if(status == 0)
-      XPUSHs(newSViv((long)unix_id));
-    DCESTATUS;
+
+    XPUSHs(newSViv(unix_id));
+    if(WANTARRAY) 
+	DCESTATUS;
   }
 
 void
@@ -420,15 +428,14 @@ sec_rgy_pgo_name_to_id(rgy_context, domain, name)
   PPCODE:
   {
     uuid_t	uuid_struct;
-    error_status_t uuid_status;
-    unsigned char *	uuid;
     error_status_t	status;
-
+    SV *uuid_sv;
     sec_rgy_pgo_name_to_id(rgy_context, domain, name, &uuid_struct, &status);
-    if(status == 0)
-      uuid_to_string(&uuid_struct, &uuid, &uuid_status);    
-    XPUSHs_pv(uuid);
-    DCESTATUS;
+
+    BLESS_UUID_mortal(uuid_struct);
+    XPUSHs(uuid_sv); 
+    if(WANTARRAY) 
+	DCESTATUS;
   }
 
 void
@@ -442,11 +449,8 @@ sec_rgy_pgo_add(rgy_context, domain, name, hash_ref)
   {
     error_status_t	status;
     sec_rgy_pgo_item_t  pgo_item;
-    uuid_t  uuid_struct;
-    error_status_t	uuid_status;
-    HV *info;
-    SV **svp;
-    STRLEN len;
+    SV **svp;     
+    HV *info; 
 
     FETCH_PGO_ITEM;
     sec_rgy_pgo_add(rgy_context, domain, name, &pgo_item, &status);
@@ -464,14 +468,10 @@ sec_rgy_pgo_replace(rgy_context, domain, name, hash_ref)
   {
     error_status_t	status;
     sec_rgy_pgo_item_t  pgo_item;
-    uuid_t  uuid_struct;
-    error_status_t	uuid_status;
-    HV *info;
-    SV **svp;
-    STRLEN len;
+    SV **svp;     
+    HV *info; 
 
     FETCH_PGO_ITEM;
-
     sec_rgy_pgo_replace(rgy_context, domain, name, &pgo_item, &status);
     DCESTATUS;
   }
@@ -552,7 +552,7 @@ sec_rgy_pgo_delete_member(rgy_context, domain, name, person)
 void
 sec_rgy_cursor_reset(rgy_context, cursor)
   DCE::Registry	rgy_context
-  DCE::cursor	cursor
+  DCE::RegistryCursor	cursor
 
   CODE:
   {
@@ -568,25 +568,37 @@ sec_rgy_create_cursor(rgy_context, cursor)
   {
     sec_rgy_cursor_t *rgy_cursor;
     rgy_cursor = malloc(sizeof(sec_rgy_cursor_t));
-    sv_setref_pv((SV*)cursor, "DCE::cursor", (void *)rgy_cursor);
+    sv_setref_pv((SV*)cursor, "DCE::RegistryCursor", (void *)rgy_cursor);
   }
+
+DCE::RegistryCursor
+sec_rgy_cursor(rgy_context)
+  SV *	rgy_context
+
+  CODE:
+  {
+    sec_rgy_cursor_t *rgy_cursor;
+    rgy_cursor = malloc(sizeof(sec_rgy_cursor_t));
+    RETVAL = rgy_cursor;
+  }
+
+  OUTPUT:
+  RETVAL
 
 void
 sec_rgy_pgo_get_next(rgy_context, domain, scope, item_cursor)
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
   char *	scope
-  DCE::cursor	item_cursor
+  DCE::RegistryCursor	item_cursor
 
   PPCODE:
   {
     error_status_t	status;
     sec_rgy_pgo_item_t  pgo_item;
     uuid_t  uuid_struct;
-    error_status_t	uuid_status;
-    unsigned char *	uuid;
     sec_rgy_name_t	pgo_name;
-    SV *rv;
+    SV *rv, *uuid_sv;
     HV *hv;
 
     sec_rgy_pgo_get_next(rgy_context, domain, scope, item_cursor, &pgo_item, pgo_name, &status);
@@ -627,21 +639,17 @@ sec_rgy_pgo_get_by_name(rgy_context, domain, name, item_cursor)
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
   char *	name
-  DCE::cursor 	item_cursor
+  DCE::RegistryCursor 	item_cursor
 
   PPCODE:
   {
     error_status_t	status;
     sec_rgy_pgo_item_t  pgo_item;
     uuid_t  uuid_struct;
-    error_status_t	uuid_status;
-    unsigned char *	uuid;
-    SV *rv;
+    SV *rv, *uuid_sv;
     HV *hv;
 
-    sec_rgy_pgo_get_by_name(rgy_context, domain, name,
-			    (sec_rgy_cursor_t *)item_cursor, 
-			    &pgo_item, &status);
+    sec_rgy_pgo_get_by_name(rgy_context, domain, name, (sec_rgy_cursor_t *)item_cursor, &pgo_item, &status);
 
     STORE_PGO_ITEM;
 
@@ -654,19 +662,17 @@ sec_rgy_pgo_get_by_unix_num(rgy_context, domain, scope, unix_id, allow_aliases, 
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
   char *	scope
-  long	unix_id
+  signed32	unix_id
   boolean32	allow_aliases
-  DCE::cursor 	cursor
+  DCE::RegistryCursor 	cursor
 
   PPCODE:
   {
     error_status_t	status;
     sec_rgy_pgo_item_t  pgo_item;
     uuid_t  uuid_struct;
-    error_status_t	uuid_status;
-    unsigned char *	uuid;
     char *name;
-    SV *rv;
+    SV *rv, *uuid_sv;
     HV *hv;
 
     sec_rgy_pgo_get_by_unix_num(rgy_context, domain, scope, unix_id, 
@@ -685,27 +691,21 @@ sec_rgy_pgo_get_by_id(rgy_context, domain, scope, id, allow_aliases, cursor)
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
   char *	scope
-  char *	id
+  SV *	id
   boolean32	allow_aliases
-  DCE::cursor	cursor
+  DCE::RegistryCursor	cursor
 
   PPCODE:
   {
     sec_rgy_pgo_item_t  pgo_item;
     uuid_t  uuid_struct;
-    unsigned char *uuid;
-    error_status_t	uuid_status, status;
+    error_status_t status;
     char *name; 
-    SV *rv;
+    SV *rv, *uuid_sv;
     HV *hv;
 
-    uuid_from_string(id, &uuid_struct, &uuid_status);
-    if(uuid_status != 0) {
-      DCESTATUS;
-      return;
-    }
-
-     sec_rgy_pgo_get_by_id(rgy_context, domain, scope, &uuid_struct, 
+    UUIDmagic_sv(uuid_struct, id);
+    sec_rgy_pgo_get_by_id(rgy_context, domain, scope, &uuid_struct, 
 			   allow_aliases, (sec_rgy_cursor_t *)cursor, 
 			   &pgo_item, name, &status);
 
@@ -721,14 +721,14 @@ sec_rgy_pgo_get_members(rgy_context, domain, name, member_cursor, max_members = 
   DCE::Registry	rgy_context
   sec_rgy_domain_t	domain
   char *	name
-  DCE::cursor	member_cursor
+  DCE::RegistryCursor	member_cursor
   long	 max_members
 
   PPCODE:
   {
     error_status_t	status;
     sec_rgy_member_t *member_list;
-    long number_supplied, number_members, i;
+    signed32 number_supplied, number_members, i;
     AV *av;
 
     member_list = (sec_rgy_member_t *)malloc(sizeof(sec_rgy_member_t) * max_members);
@@ -767,21 +767,16 @@ void
 sec_rgy_acct_lookup(rgy_context, login_name_ref, cursor)
   DCE::Registry	rgy_context
   SV	*login_name_ref
-  DCE::cursor	cursor
+  DCE::RegistryCursor	cursor
 
   PPCODE:
   {
-  char *pname_result, *gname_result, *oname_result;
-  unsigned char *puuid, *guuid, *ouuid;
-  sec_rgy_acct_key_t	key_parts;
-  unsigned char *	creator_uuid;
-  unsigned char *	creator_cell_uuid;
-  sec_timeval_sec_t	creation_date;
-  unsigned char *	last_changer_uuid;
-  unsigned char *	last_changer_cell_uuid;
-  error_status_t	status;
+    char *pname_result, *gname_result, *oname_result;
+    sec_rgy_acct_key_t	key_parts;
+    sec_timeval_sec_t	creation_date;
+    error_status_t	status;
   
-  sec_rgy_login_name_t login_name, name_result;
+    sec_rgy_login_name_t login_name, name_result;
     sec_rgy_sid_t id_sid;
     sec_rgy_unix_sid_t unix_sid;
     sec_rgy_acct_user_t user_part;
@@ -789,7 +784,7 @@ sec_rgy_acct_lookup(rgy_context, login_name_ref, cursor)
     error_status_t uuid_status;
     STRLEN len;
     HV *hv, *nhv;
-    SV **svp;
+    SV **svp, *uuid_sv;
 
     FETCH_LOGIN_NAME;
     strcpy(login_name.oname, (char *)SvPV(*svp,len));
@@ -797,27 +792,23 @@ sec_rgy_acct_lookup(rgy_context, login_name_ref, cursor)
 			&name_result, &id_sid, &unix_sid, &key_parts, 
 			&user_part, &admin_part, &status);
     
+    CHK_STS(4);
+
     iniHV;
     hv_store(hv, "pname", 5, newSVpv(name_result.pname,0),0);
     hv_store(hv, "gname", 5, newSVpv(name_result.gname,0),0);
     hv_store(hv, "oname", 5, newSVpv(name_result.oname,0),0);
+    /* DCE_TIEHASH(&name_result, "DCE::login_name", hv); */
     sv_setsv(ST(1), newRV((SV*)hv));
 
     EXTEND(sp, 4);
-    if(status != 0) {
-        int i;
-        for (i = 0; i <= 4; i++)
-           PUSHs(Nullsv);
-        DCESTATUS;
-        return;
-    }
     iniHV;
-    uuid_to_string(&(id_sid.person), &puuid, &uuid_status);
-    hv_store(hv,"person", 6, newSVpv(puuid,0),0);
-    uuid_to_string(&(id_sid.group), &guuid, &uuid_status);
-    hv_store(hv,"group", 5, newSVpv(puuid,0),0);
-    uuid_to_string(&(id_sid.org), &ouuid, &uuid_status);
-    hv_store(hv,"org", 3, newSVpv(puuid,0),0);
+    BLESS_UUID(id_sid.person); 
+    hv_store(hv,"person", 6, uuid_sv,0);
+    BLESS_UUID(id_sid.group); 
+    hv_store(hv,"group", 5, uuid_sv,0);
+    BLESS_UUID(id_sid.org); 
+    hv_store(hv,"org", 3, uuid_sv,0);
     PUSHs(newRV((SV*)hv));  
 
     iniHV;
@@ -839,17 +830,17 @@ sec_rgy_acct_lookup(rgy_context, login_name_ref, cursor)
 
     iniHV;
     nhv = (HV*)sv_2mortal((SV*)newHV());
-    uuid_to_string(&(admin_part.creator.principal), &creator_uuid, &uuid_status);
-    uuid_to_string(&(admin_part.creator.cell), &creator_cell_uuid, &uuid_status);
-    hv_store(nhv, "principal", 9, newSVpv(creator_uuid,0),0);
-    hv_store(nhv, "cell", 4, newSVpv(creator_cell_uuid,0),0);      
+    BLESS_UUID(admin_part.creator.principal);
+    hv_store(nhv, "principal", 9, uuid_sv, 0);
+    BLESS_UUID(admin_part.creator.cell);
+    hv_store(nhv, "cell", 4, uuid_sv, 0);      
     hv_store(hv, "creator", 7, newRV((SV*)nhv), 0); 
 
     nhv = (HV*)sv_2mortal((SV*)newHV());
-    uuid_to_string(&(admin_part.last_changer.principal), &last_changer_uuid, &uuid_status);
-    uuid_to_string(&(admin_part.last_changer.cell), &last_changer_cell_uuid, &uuid_status);
-    hv_store(nhv, "principal", 9, newSVpv(last_changer_uuid,0),0);
-    hv_store(nhv, "cell", 4, newSVpv(last_changer_cell_uuid,0),0);      
+    BLESS_UUID(admin_part.last_changer.principal);
+    hv_store(nhv, "principal", 9, uuid_sv, 0);
+    BLESS_UUID(admin_part.last_changer.cell);
+    hv_store(nhv, "cell", 4, uuid_sv, 0);      
     hv_store(hv, "last_changer", 12, newRV((SV*)nhv), 0); 
 
     hv_store(hv, "creation_date", 13, newSViv(admin_part.creation_date),0);
@@ -1217,18 +1208,34 @@ sec_rgy_plcy_get_effective(rgy_context, organization)
 MODULE = DCE::Registry  PACKAGE = DCE::cursor
 
 void
+new(package)
+  char	*package
+     
+  PPCODE:
+  {
+    SV *cursor;
+    sec_rgy_cursor_t *rgy_cursor;
+    rgy_cursor = malloc(sizeof(sec_rgy_cursor_t));
+    cursor = sv_newmortal();
+    warn("Don't call DCE::cursor->new, use DCE::Registry->cursor instead!!!");
+    sv_setref_pv((SV*)cursor, "DCE::RegistryCursor", (void *)rgy_cursor);
+    XPUSHs(cursor);
+  }
+
+MODULE = DCE::Registry  PACKAGE = DCE::RegistryCursor
+
+void
 DESTROY(cursor)
-DCE::cursor   cursor
+DCE::RegistryCursor   cursor
 
    CODE:
    {
      free(cursor);
-     /* fprintf(stderr, "DCE::cursor::DESTROY\n"); */
    }
 
 void
 reset(cursor)
-DCE::cursor	cursor
+DCE::RegistryCursor	cursor
 
   CODE:
   {
@@ -1249,3 +1256,46 @@ new(package)
     XPUSHs(cursor);
   }
 
+MODULE = DCE::Registry		PACKAGE = DCE::login_name
+
+char *
+FETCH(id, key)
+DCE::login_name id
+char *key
+
+    CODE:
+    {
+    SV *uuid_sv;
+    
+    if(strEQ(key, "pname"))
+	RETVAL = id->pname;
+    else if(strEQ(key, "gname")) 
+	RETVAL = id->gname;
+    else if(strEQ(key, "oname")) 
+	RETVAL = id->oname;
+    else 
+	RETVAL = NULL;
+    }
+    printf("DCE::login_name->FETCH %s, %s\n", key, RETVAL); 
+    OUTPUT:
+    RETVAL
+
+void
+STORE(id, key, val)
+DCE::login_name id
+char *key
+char *val
+
+    CODE:
+    if(strEQ(key, "pname")) printf("STORE %s %s", key, val);
+       /*id->pname = val;*/
+    
+char *
+FIRSTKEY(id)
+DCE::login_name id
+
+    CODE:
+    {
+    MAGIC *mg;
+    /* mg = mg_find(SvRV(id), '~'); */
+    }

@@ -12,7 +12,7 @@ require AutoLoader;
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-$VERSION = '1.00';
+$VERSION = '1.02';
 
 sub AUTOLOAD {
     # This AUTOLOAD is used to 'autoload' constants from the constant()
@@ -21,7 +21,7 @@ sub AUTOLOAD {
 
     my $constname;
     ($constname = $AUTOLOAD) =~ s/.*:://;
-    my $val = constant($constname, @_ ? $_[0] : 0);
+    my $val = constant($constname, 0);
     if ($! != 0) {
 	if ($! =~ /Invalid/) {
 	    $AutoLoader::AUTOLOAD = $AUTOLOAD;
@@ -31,7 +31,7 @@ sub AUTOLOAD {
 		croak "Your vendor has not defined DCE::rgybase macro $constname";
 	}
     }
-    eval "sub $AUTOLOAD { $val }";
+    eval "sub $AUTOLOAD () { $val }";
     goto &$AUTOLOAD;
 }
 

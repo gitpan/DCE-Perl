@@ -33,6 +33,9 @@ o DCE::Login
   The sec_login_* functions
   This class is-a DCE::login_base where constants from sec_login_*.h live 
 
+o DCE::ACL
+  The sec_acl_* functions
+  
 o DCE::Status  
   This module attempts to help make sense of status codes
 
@@ -64,6 +67,16 @@ $user->create(-name => "dceperl", -fullname => "DCE Perl",
 
 @users = $user->catalog;
 
+----------------------------------------------------------------
+SUPPORT
+
+For comments, questions, bug-reports, announcements, etc. subscribe to
+the DCE-Perl mailing list <dce-perl@sci.csupomona.edu> by sending mail to:
+majordomo@sci.csupomona.edu
+with a body consisting of:
+"subscribe dce-perl"
+
+(Thanks to Paul Henson <pbhenson@csupomona.edu> for providing this resource)
 ----------------------------------------------------------------
 
 ACKNOWLEGEMENTS

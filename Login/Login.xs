@@ -1,36 +1,12 @@
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "EXTERN.h"
-#include "perl.h"
-#include "XSUB.h"
-#ifdef __cplusplus
-}
-#endif
+#include "../DCE_Perl.h"
 
 #include <dce/sec_login.h>
-#include <dce/binding.h>
-#include <dce/pgo.h>
-#include <dce/uuid.h>
-#include <dce/rgynbase.h>
-#include <dce/acct.h>
-#include <dce/policy.h>
 
-/* $Id: Login.xs,v 1.10 1996/08/13 20:00:47 dougm Exp dougm $ */ 
+#ifdef I_PWD
+#include <pwd.h>
+#endif
 
-typedef  sec_login_handle_t * DCE__Login;
-
-#define iniHV 	hv = (HV*)sv_2mortal((SV*)newHV())
-
-#define PUSHs_pv(pv) PUSHs(sv_2mortal((SV*)newSVpv(pv,0)));
-#define PUSHs_iv(iv) PUSHs(sv_2mortal((SV*)newSViv(iv)));
-#define XPUSHs_pv(pv) XPUSHs(sv_2mortal((SV*)newSVpv(pv,0)));
-#define XPUSHs_iv(iv) XPUSHs(sv_2mortal((SV*)newSViv(iv)));
-
-#define DCESTATUS \
-   sv_setiv(perl_get_sv("DCE::status",TRUE), status); \
-   if(GIMME == G_ARRAY) \
-     XPUSHs_iv(status)
+/* $Id: Login.xs,v 1.11 1996/11/01 19:24:57 dougm Exp $ */ 
 
 #define BLESS_LOGIN_CONTEXT \
    sv = sv_newmortal(); \
@@ -44,7 +20,7 @@ MODULE = DCE::Login		PACKAGE = DCE::Login		PREFIX = sec_login_
 # and return a list of ($login_context, $status)
 
 void
-sec_login_setup_identity(package = "DCE::Login", principal, flags)
+sec_login_setup_identity(package = "DCE::Login", principal, flags=sec_login_no_flags)
   char *package
   unsigned_char_p_t	principal
   sec_login_flags_t	flags
@@ -91,13 +67,30 @@ sec_login_validate_identity(login_context, password)
     passwd.pepper = NULL;
     passwd.version_number = sec_passwd_c_version_none;
                         
-    retval = sec_login_validate_identity(login_context, &passwd, &reset_passwd, &auth_src, &status);
-    EXTEND(sp,3);
-    PUSHs_iv(retval);
-    PUSHs_iv(reset_passwd);
-    PUSHs_iv(auth_src);
+    retval = sec_login_validate_identity(login_context, &passwd, 
+					 &reset_passwd, &auth_src, &status);
+    if(GIMME == G_ARRAY) {
+	EXTEND(sp,3);
+	PUSHs_iv(retval);
+	PUSHs_iv(reset_passwd);
+	PUSHs_iv(auth_src);
+    }
     DCESTATUS;
   }    
+
+void
+sec_login_certify_identity(login_context)
+  DCE::Login	login_context
+
+  PPCODE:
+  {
+    error_status_t	status;
+    boolean32 retval;
+    retval = sec_login_certify_identity(login_context, &status);
+    if(GIMME == G_ARRAY)
+	XPUSHs_iv(retval);
+    DCESTATUS;
+  }
 
 void
 sec_login_valid_and_cert_ident(login_context, password)
@@ -122,10 +115,12 @@ sec_login_valid_and_cert_ident(login_context, password)
     passwd.version_number = sec_passwd_c_version_none;
             
     retval = sec_login_valid_and_cert_ident(login_context, &passwd, &reset_passwd, &auth_src, &status);
-    EXTEND(sp,3);
-    PUSHs_iv(retval);
-    PUSHs_iv(reset_passwd);
-    PUSHs_iv(auth_src);
+    if(GIMME == G_ARRAY) {
+	EXTEND(sp,3);
+	PUSHs_iv(retval);
+	PUSHs_iv(reset_passwd);
+	PUSHs_iv(auth_src);
+    }
     DCESTATUS;
   }    
 
@@ -168,7 +163,7 @@ sec_login_purge_context(login_context)
   {
     error_status_t	status;
     sec_login_purge_context(login_context, &status);
-    sv_setref_pv(ST(0), "DCE::Login" ,(void*)login_context);
+    sv_setref_pv(ST(0), "DCE::Login", (void*)login_context);
     DCESTATUS;
   }
 
@@ -180,8 +175,18 @@ sec_login_release_context(login_context)
   {
     error_status_t	status;
     sec_login_release_context(login_context, &status);
-    sv_setref_pv(ST(0), "DCE::Login" ,(void*)login_context);
+    sv_setref_pv(ST(0), "DCE::Login", (void*)login_context);
     DCESTATUS;
+  }
+
+void
+sec_login_DESTROY(login_context)
+  DCE::Login	login_context
+
+  PPCODE:
+  {
+    error_status_t	status;
+    sec_login_release_context(login_context, &status);
   }
 
 void
