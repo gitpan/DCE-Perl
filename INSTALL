@@ -1,0 +1,13 @@
+
+You may need to change the 'LIBS' attribute in the 'config' file.
+Then in *this directory* type:
+
+perl Makefile.PL
+make
+make install
+
+The wonderful MakeMaker will take care of the subdirectories.
+
+The test suite is not complete, nor is the documentation, however, 
+if you are familiar with the DCE security APIs and/or have your
+reference manuals close by, the *.t files will serve as decent examples.

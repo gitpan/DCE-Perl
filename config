@@ -1,0 +1,46 @@
+use Config;
+
+$def_dce_libs = '-L/usr/include/dce -ldce';
+
+$mm_dce_libs = {
+    hpux => "$def_dce_libs -lc_r",
+};
+
+$libs = $mm_dce_libs->{$Config{osname}} || $def_dce_libs;
+
+$MM_DCE = {
+    TYPEMAPS => ['../typemap'],
+    LIBS => [$libs],
+    XSPROTOARG	=> '-noprototypes',
+};
+
+use lib qw(../blib/lib ../blib/arch);
+
+sub main::test {
+    require DCE::Status;
+    import DCE::Status qw(error_string);	
+    my($num,$status) = @_;
+    my $msg = error_string($status);
+    print($status == 0 ? "ok $num\n" : "not ok $num $msg $status\n");
+}
+
+sub phash {
+    my($hash,$n) = @_;
+    my($key);
+    foreach $key (keys %$hash) {
+	if(ref $hash->{$key}) {
+	    print "$key =>\n";
+	    phash($hash->{$key},1);
+	}
+	else {
+	    print "   " x $n if $n;
+	    print "$key = $hash->{$key}\n";
+	}
+    } 
+}
+
+sub dump_inc {
+   print map { "$_ = $INC{$_}\n" } sort keys %INC;
+}
+	
+1;
