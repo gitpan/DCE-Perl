@@ -26,7 +26,6 @@ aclbase/Makefile.PL
 aclbase/aclbase.pm
 aclbase/aclbase.xs
 aclbase/test.pl
-config
 lib/DCE/test.pm
 login_base/Makefile.PL
 login_base/login_base.pm

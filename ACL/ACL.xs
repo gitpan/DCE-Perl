@@ -1,12 +1,12 @@
-/* $Id: ACL.xs,v 1.18 1996/11/19 13:59:54 dougm Exp $ */
-
-#include "../DCE_Perl.h"
+/* $Id: ACL.xs,v 1.19 1997/06/23 03:45:20 dougm Exp $ */
 
 #include <dce/rpc.h>
 #include <dce/daclif.h>
 #include <dce/aclif.h>
 #include <dce/sec_acl_encode.h>
 #include <dce/secidmap.h>
+
+#include "../DCE_Perl.h"
 
 #define BLESS_ACL_HANDLE \
   sv = sv_newmortal(); \
@@ -421,7 +421,40 @@ DCE::ACL::list l
        }   
    }
    }
+
+MODULE = DCE::ACL		PACKAGE = DCE::ACL        PREFIX = dce_acl_obj_
+
+void
+dce_acl_obj_init(self, mgr_sv)
+SV *self
+SV *mgr_sv
+
+    PPCODE:
+    {
+    uuid_t manager_type;	
+    sec_acl_t *acl = (sec_acl_t *)safemalloc(sizeof(sec_acl_t));
+    error_status_t status;
     
+    UUIDmagic_sv(manager_type, mgr_sv); 
+
+    dce_acl_obj_init(&manager_type, acl, &status);
+    BLESS_ACL(acl);
+    if(WANTARRAY)
+	DCESTATUS;
+    }
+
+void
+dce_acl_obj_add_any_other_entry(acl, permset)
+DCE::ACL acl
+sec_acl_permset_t permset
+
+    PPCODE:
+    {
+    error_status_t status;
+    dce_acl_obj_add_any_other_entry(acl, permset, &status);
+    DCESTATUS;
+    }
+
 MODULE = DCE::ACL		PACKAGE = DCE::ACL        PREFIX = sec_acl_
 
 void
@@ -689,7 +722,7 @@ DCE::ACL::entry e
 	set_hv = (HV*)SvRV(ST(1));
 
 	svp = hv_fetch(set_hv, "entry_type", 10, 1);
-	if(SvTRUE(*svp)) 
+	if(SvOK(*svp)) 
 	    e->entry_info.entry_type = (sec_acl_entry_type_t)SvIV(*svp);
 
 	FETCH_SEC_ID(e->entry_info.tagged_union.id, set_hv, "id", 2);

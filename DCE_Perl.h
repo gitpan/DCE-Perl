@@ -4,6 +4,7 @@
 #include <dce/rgynbase.h>
 #include <dce/acct.h>
 #include <dce/policy.h>
+#include <dce/rpc.h>
 #include <dce/dce_error.h>
 
 #ifdef __cplusplus
@@ -16,7 +17,7 @@ extern "C" {
 }
 #endif
 
-/* $Id: DCE_Perl.h,v 1.15 1996/11/19 13:59:54 dougm Exp $ */
+/* $Id: DCE_Perl.h,v 1.16 1997/06/23 03:45:20 dougm Exp $ */
 
 #ifndef SET_STATUS
 #define SET_STATUS(stp, val)      ((*stp) = val)
@@ -54,6 +55,9 @@ extern "C" {
 
 #define WANTARRAY GIMME == G_ARRAY
 
+#define hv_true_fetch(hv,k,kl,lv) \
+hv_exists(hv, k, kl) ? hv_fetch(hv, k, kl, lv) : 0
+
 #define DCE_TIEHASH(p, package, hv) \
 { \
       SV *sv = sv_newmortal(); \
@@ -73,8 +77,8 @@ extern "C" {
 #define XPUSHs_pv(pv) XPUSHs(sv_2mortal((SV*)newSVpv(pv,0)));
 #define XPUSHs_iv(iv) XPUSHs(sv_2mortal((SV*)newSViv(iv)));
 
-typedef sec_rgy_handle_t   * DCE__Registry;
-typedef  sec_login_handle_t * DCE__Login;
+typedef sec_rgy_handle_t   DCE__Registry;
+typedef sec_login_handle_t DCE__Login;
 typedef sec_rgy_cursor_t   * DCE__cursor;
 typedef sec_rgy_cursor_t   * DCE__RegistryCursor;
 typedef uuid_t             * DCE__UUID;
@@ -145,6 +149,15 @@ typedef uuid_t             * DCE__UUID;
     hv_store(hv, key, len, newRV((SV*)id), 0); \
 }
 
+#define AV_PUSH_SEC_ID(sec_id,av) \
+{ \
+    HV *id = (HV*)sv_2mortal((SV*)newHV()); \
+    SV *uuid_sv; \
+    BLESS_UUID(sec_id.uuid); \
+    hv_store(id, "uuid", 4, uuid_sv, 0); \
+    av_push(av, newRV((SV*)id)); \
+}
+
 #define FETCH_SEC_ID(sec_id,hv,key,len) \
 { \
     SV **svp; \
@@ -157,18 +170,26 @@ typedef uuid_t             * DCE__UUID;
     sec_id.name = SvPV(*svp,na); \
 }
 
-#define FETCH_FOREIGN_ID(f_id, hv) \
+#define FETCH_FOREIGN_ID(f_id,hv) \
 { \
     HV *f_hv = (HV*)SvRV(*hv_fetch(hv, "foreign_id", 10, 0)); \
     FETCH_SEC_ID(f_id.id, f_hv, "id", 2); \
     FETCH_SEC_ID(f_id.realm, f_hv, "realm", 5); \
 }
 
-#define STORE_FOREIGN_ID(f_id, hv) \
+#define STORE_FOREIGN_ID(f_id,hv) \
 { \
     HV *foreign_id = (HV*)sv_2mortal((SV*)newHV()); \
     STORE_SEC_ID(f_id.id, foreign_id, "id", 2); \
     STORE_SEC_ID(f_id.realm, foreign_id, "realm", 5); \
     hv_store(hv, "foreign_id", 10, newRV((SV*)foreign_id), 0); \
 }
+
+
+
+
+
+
+
+
 

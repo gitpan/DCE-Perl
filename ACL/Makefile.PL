@@ -1,8 +1,7 @@
 use ExtUtils::MakeMaker;
-require "../config";
 
 WriteMakefile (
-     %$MM_DCE, #from config
+     TYPEMAPS => '../typemap',	       
      NAME => "DCE::ACL",
      VERSION_FROM => "ACL.pm",
 );

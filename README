@@ -1,6 +1,6 @@
 README for DCE::* 
 
-Copyright (c) 1996, Doug MacEachern, OSF Research Institute
+Copyright (c) 1996,1997 Doug MacEachern, OSF Research Institute
 
 You may distribute under the terms of either the GNU General Public
 License or the Artistic License, as specified in the Perl README file.
@@ -71,18 +71,21 @@ $user->create(-name => "dceperl", -fullname => "DCE Perl",
 SUPPORT
 
 For comments, questions, bug-reports, announcements, etc. subscribe to
-the DCE-Perl mailing list <dce-perl@sci.csupomona.edu> by sending mail to:
-majordomo@sci.csupomona.edu
+the DCE-Perl mailing list <dce-perl@lists.csupomona.edu> by sending mail to:
+majordomo@lists.csupomona.edu
 with a body consisting of:
 "subscribe dce-perl"
 
-(Thanks to Paul Henson <pbhenson@csupomona.edu> for providing this resource)
 ----------------------------------------------------------------
 
 ACKNOWLEGEMENTS
 
 Some of this work is based on DCE.xs written by: 
 David J. Bianco <d.j.bianco@larc.nasa.gov>
+
+Extra thanks to Paul Henson <henson@acm.org> for proving the mailing
+list and lots of patience, bug spotting, fixing and ideas while
+DCE-Perl was getting on it's feet.
 
 ----------------------------------------------------------------
 

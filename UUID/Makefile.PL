@@ -1,9 +1,7 @@
 use ExtUtils::MakeMaker;
-require "../config";
 
-WriteMakefile
-    (
-     %$MM, #from config.pl
+WriteMakefile(
+     TYPEMAPS => '../typemap',	       
      NAME => "DCE::UUID",
      VERSION_FROM => "UUID.pm",
 );

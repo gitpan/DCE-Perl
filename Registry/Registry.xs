@@ -1,76 +1,99 @@
 #include "../DCE_Perl.h"
 
-/* $Id: Registry.xs,v 1.14 1996/11/18 15:33:45 dougm Exp $ */
+/* $Id: Registry.xs,v 1.15 1997/06/23 03:45:20 dougm Exp $ */
 
 #define FETCH_AUTH_INFO \
-  info = (HV*)SvRV(hash_ref);  \
+  memset(&auth_info, 0, sizeof(auth_info)); \
   auth_info.info_type = sec_rgy_bind_auth_none; \
-  svp = hv_fetch((HV*)SvRV(hash_ref), "info_type", 9, 1); \
-  if(SvTRUE(*svp)) \
-    auth_info.info_type = (sec_rgy_bind_auth_info_type_t )SvPV(*svp,len); \
-  svp = hv_fetch(info, "authn_level", 11, 1); \
-  auth_info.tagged_union.dce_info.authn_level =  (unsigned32 )SvIV(*svp); \
-  svp = hv_fetch(info, "authn_svc", 9, 1); \
-  auth_info.tagged_union.dce_info.authn_svc = (unsigned32 )SvIV(*svp); \
-  svp = hv_fetch(info, "authz_svc", 9, 1); \
-  auth_info.tagged_union.dce_info.authz_svc = (unsigned32 )SvIV(*svp); \
-  svp = hv_fetch(info, "identity", 8, 1); \
-  auth_info.tagged_union.dce_info.identity = (sec_login_handle_t )SvPV(*svp,len)
+  if (SvROK(hash_ref)) { \
+    info = (HV*)SvRV(hash_ref);  \
+    svp = hv_true_fetch(info, "info_type", 9, 1); \
+    if(svp) auth_info.info_type = \
+      (sec_rgy_bind_auth_info_type_t )SvIV(*svp); \
+    svp = hv_true_fetch(info, "authn_level", 11, 1); \
+    if(svp) auth_info.tagged_union.dce_info.authn_level = \
+      (unsigned32 )SvIV(*svp); \
+    svp = hv_true_fetch(info, "authn_svc", 9, 1); \
+    if(svp) auth_info.tagged_union.dce_info.authn_svc = \
+      (unsigned32 )SvIV(*svp); \
+    svp = hv_true_fetch(info, "authz_svc", 9, 1); \
+    if(svp) auth_info.tagged_union.dce_info.authz_svc = \
+      (unsigned32 )SvIV(*svp); \
+    svp = hv_true_fetch(info, "identity", 8, 1); \
+    if(svp && SvROK(*svp)) auth_info.tagged_union.dce_info.identity = \
+      (sec_login_handle_t )SvIV(SvRV(*svp)); \
+  }
 
 #define BLESS_RGY_CONTEXT \
-  sv = sv_newmortal(); \
-  sv_setref_pv(sv,package,(void*)rgy_context); \
+  sv = &sv_undef; \
+  if (status == 0) { \
+    sv = sv_newmortal(); \
+    sv_setref_pv(sv,package,(void*)rgy_context); \
+  } \
   XPUSHs(sv); \
   DCESTATUS
 
 #define FETCH_LOGIN_NAME \
-   hv = (HV*)SvRV(login_name_ref); \
-   svp = hv_fetch(hv, "pname", 5, 1); \
-   strcpy(login_name.pname, (char *)SvPV(*svp,len)); \
-   svp = hv_fetch(hv, "gname", 5, 1); \
-   strcpy(login_name.gname, (char *)SvPV(*svp,len)); \
-   svp = hv_fetch(hv, "oname", 5, 1)   
+   memset(&login_name, 0, sizeof(login_name)); \
+   if (SvROK(login_name_ref)) { \
+     hv = (HV*)SvRV(login_name_ref); \
+     svp = hv_true_fetch(hv, "pname", 5, 1); \
+     if(svp) strcpy(login_name.pname, (char *)SvPV(*svp,len)); \
+     svp = hv_true_fetch(hv, "gname", 5, 1); \
+     if(svp) strcpy(login_name.gname, (char *)SvPV(*svp,len)); \
+     svp = hv_true_fetch(hv, "oname", 5, 1); \
+     if(svp) strcpy(login_name.oname, (char *)SvPV(*svp,len)); \
+   }
 
 #define FETCH_ADMIN_PART \
-   hv = (HV*)SvRV(admin_part_ref); \
-   svp = hv_fetch(hv, "expiration_date", 15, 1); \
-   admin_part.expiration_date = SvIV(*svp); \
-   svp = hv_fetch(hv, "good_since_date", 15, 1); \
-   admin_part.good_since_date = SvIV(*svp); \
-   svp = hv_fetch(hv, "flags", 5, 1); \
-   admin_part.flags = SvIV(*svp); \
-   svp = hv_fetch(hv, "authentication_flags", 20, 1); \
-   admin_part.authentication_flags = SvIV(*svp)
+   memset(&admin_part, 0, sizeof(admin_part)); \
+   if (SvOK(admin_part_ref)) { \
+     hv = (HV*)SvRV(admin_part_ref); \
+     svp = hv_true_fetch(hv, "expiration_date", 15, 1); \
+     if(svp) admin_part.expiration_date = SvIV(*svp); \
+     svp = hv_true_fetch(hv, "good_since_date", 15, 1); \
+     if(svp) admin_part.good_since_date = SvIV(*svp); \
+     svp = hv_true_fetch(hv, "flags", 5, 1); \
+     if(svp) admin_part.flags = SvIV(*svp); \
+     svp = hv_true_fetch(hv, "authentication_flags", 20, 1); \
+     if(svp) admin_part.authentication_flags = SvIV(*svp); \
+   }
 
 #define FETCH_USER_PART \
-    hv = (HV*)SvRV(user_part_ref); \
-    svp = hv_fetch(hv, "gecos", 5, 1); \
-    strncpy(user_part.gecos, (char *)SvPV(*svp,len), 257); \
-    svp = hv_fetch(hv, "homedir", 7, 1); \
-    strncpy(user_part.homedir, (char *)SvPV(*svp,len), 257); \
-    svp = hv_fetch(hv, "shell", 5, 1); \
-    strncpy(user_part.shell, (char *)SvPV(*svp,len), 257); \
-    svp = hv_fetch(hv, "passwd", 6, 1); \
-    strncpy(user_part.passwd, (char *)SvPV(*svp,len), 16); \
-    svp = hv_fetch(hv, "passwd_version_number", 21, 1); \
-    user_part.passwd_version_number = SvIV(*svp); \
-    svp = hv_fetch(hv, "flags", 5, 1); \
-    user_part.flags = SvIV(*svp)
+    memset(&user_part, 0, sizeof(user_part)); \
+    if (SvOK(user_part_ref)) { \
+      hv = (HV*)SvRV(user_part_ref); \
+      svp = hv_true_fetch(hv, "gecos", 5, 1); \
+      if(svp) strncpy(user_part.gecos, (char *)SvPV(*svp,len), 257); \
+      svp = hv_true_fetch(hv, "homedir", 7, 1); \
+      if(svp) strncpy(user_part.homedir, (char *)SvPV(*svp,len), 257); \
+      svp = hv_true_fetch(hv, "shell", 5, 1); \
+      if(svp) strncpy(user_part.shell, (char *)SvPV(*svp,len), 257); \
+      svp = hv_true_fetch(hv, "passwd", 6, 1); \
+      if(svp) strncpy(user_part.passwd, (char *)SvPV(*svp,len), 16); \
+      svp = hv_true_fetch(hv, "passwd_version_number", 21, 1); \
+      if(svp) user_part.passwd_version_number = SvIV(*svp); \
+      svp = hv_true_fetch(hv, "flags", 5, 1); \
+      if(svp) user_part.flags = SvIV(*svp); \
+    }
 
 /*  pgo_item.id = uuid_struct; \ */
 
 #define FETCH_PGO_ITEM \
-  info = (HV*)SvRV(hash_ref);  \
-  svp = hv_fetch(info, "unix_num", 8, 1); \
-  pgo_item.unix_num = (signed32 )SvIV(*svp); \
-  svp = hv_fetch(info, "quota", 5, 1); \
-  pgo_item.quota = (signed32 )SvIV(*svp); \
-  svp = hv_fetch(info, "flags", 5, 1); \
-  pgo_item.flags = (sec_rgy_pgo_flags_t )SvIV(*svp); \
-  svp = hv_fetch(info, "fullname", 8, 1); \
-  strncpy(pgo_item.fullname, (char *)SvPV(*svp,na), 256); \
-  svp = hv_fetch(info, "uuid", 4, 1); \
-  UUIDmagic_sv(pgo_item.id, *svp);  
+  memset(&pgo_item, 0, sizeof(pgo_item)); \
+  if (SvOK(hash_ref)) { \
+    info = (HV*)SvRV(hash_ref);  \
+    svp = hv_true_fetch(info, "unix_num", 8, 1); \
+    if(svp) pgo_item.unix_num = (signed32 )SvIV(*svp); \
+    svp = hv_true_fetch(info, "quota", 5, 1); \
+    if(svp) pgo_item.quota = (signed32 )SvIV(*svp); \
+    svp = hv_true_fetch(info, "flags", 5, 1); \
+    if(svp) pgo_item.flags = (sec_rgy_pgo_flags_t )SvIV(*svp); \
+    svp = hv_true_fetch(info, "fullname", 8, 1); \
+    if(svp) strncpy(pgo_item.fullname, (char *)SvPV(*svp,na), 256); \
+    svp = hv_true_fetch(info, "id", 2, 1); \
+    if(svp) UUIDmagic_sv(pgo_item.id, *svp); \
+  }
 
 /*   BLESS_UUID(pgo_item.id); \   */
 
@@ -84,8 +107,9 @@
        unsigned_char_t *uuid_str; \
        error_status_t  uuid_str_status; \
        uuid_to_string(&pgo_item.id, &uuid_str, &uuid_str_status); \
-       uuid_sv = newSVpv((unsigned_char_t *)uuid_str, 0); \
+       uuid_sv = newSVpv(uuid_str, 0); \
        hv_store(hv, "id", 2, (SV*)uuid_sv, 0); \
+       rpc_string_free(&uuid_str, &uuid_str_status); \
    } \
    rv = newRV((SV*)hv)
 
@@ -106,8 +130,9 @@ PROTOTYPES: DISABLE
 
 void
 sec_rgy_DESTROY(rgy_context)
-   DCE::Registry	rgy_context
+  DCE::Registry	rgy_context
    
+    
   PPCODE:
   {
     error_status_t	status;
@@ -787,7 +812,6 @@ sec_rgy_acct_lookup(rgy_context, login_name_ref, cursor)
     SV **svp, *uuid_sv;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     sec_rgy_acct_lookup(rgy_context, &login_name, (sec_rgy_cursor_t *)cursor,
 			&name_result, &id_sid, &unix_sid, &key_parts, 
 			&user_part, &admin_part, &status);
@@ -880,7 +904,6 @@ sec_rgy_acct_replace_all(rgy_context, login_name_ref, key_parts, user_part_ref, 
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     FETCH_USER_PART;
     FETCH_ADMIN_PART;
  
@@ -932,7 +955,6 @@ sec_rgy_acct_user_replace(rgy_context, login_name_ref, user_part_ref, set_passwd
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     FETCH_USER_PART;
  
     /* load encryption key struct */
@@ -983,7 +1005,6 @@ sec_rgy_acct_add(rgy_context, login_name_ref, key_parts, user_part_ref, admin_pa
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     FETCH_USER_PART;
     FETCH_ADMIN_PART;
  
@@ -1032,7 +1053,6 @@ sec_rgy_acct_passwd(rgy_context, login_name_ref, caller_key, new_key, new_keytyp
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
  
     /* load encryption key struct */
     caller_key_rec.version_number = sec_passwd_c_version_none;
@@ -1075,7 +1095,6 @@ sec_rgy_acct_admin_replace(rgy_context, login_name_ref, key_parts, admin_part_re
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     FETCH_ADMIN_PART;
  
     sec_rgy_acct_admin_replace(rgy_context, &login_name, &key_parts, 
@@ -1098,7 +1117,6 @@ sec_rgy_acct_delete(rgy_context, login_name_ref)
     STRLEN len;
 
     FETCH_LOGIN_NAME;
-    strcpy(login_name.oname, (char *)SvPV(*svp,len));
     sec_rgy_acct_delete(rgy_context, &login_name, &status);
     DCESTATUS;
   }

@@ -43,9 +43,12 @@ for $e ($acl->entries) {
 	($str->{permissions} & $e->perms) ?  
 	    $str->{printstring} : "-";
     }
-    ($nm, $status) = 
-	$rgy->pgo_id_to_name($rgy->domain($typestr), 
-			     $e->entry_info->{id}{uuid});
+    my $domain = $rgy->domain($typestr);
+    if (defined($domain)) {
+        ($nm, $status) = 
+	    $rgy->pgo_id_to_name($domain, 
+				 $e->entry_info->{id}{uuid});
+    }
 
     @print = ();
     push @print, $typestr;

@@ -24,6 +24,10 @@ sub o {2}
 my(%domain) = (user => 0, group => 1, org => 3);
 sub domain { $domain{$_[1]} }
 
+# The bind_auth definitions are from an enum in binding.h.
+sub bind_auth_none {0}
+sub bind_auth_dce {1}
+
 bootstrap DCE::Registry;
 
 1;

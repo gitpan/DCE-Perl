@@ -169,15 +169,17 @@ Equivalent to the sec_acl_replace function.
 
 Equivalent to the sec_acl_lookup function.   
 C<$list> is a reference to a sec_acl_list_t structure, blessed into the
-I<DCE::ACL::list> class. 
+I<DCE::ACL::list> class.  C<$type> is an optional argument which defaults
+to C<DCE::ACL->type_object>.
 
- ($list, $status) = $aclh->lookup($manager);
+ ($list, $status) = $aclh->lookup($manager, [$type]);
 
 =item $aclh->new_list
 
 This method does a lookup, deleting all entries and returns the empty list.
+C<$type> is an optional argument which defaults to C<DCE::ACL->type_object>.
 
- ($list, $status) = $aclh->new_list($manager);
+ ($list, $status) = $aclh->new_list($manager, [$type]);
 
 =back
 
@@ -246,8 +248,7 @@ class.
 
 =item $acl->delete
 
-Removes all entries from the $acl, leaving only the B<user_obj> entry, if
-present.
+Removes all entries from the $acl.
  
 =item $acl->new_entry
 

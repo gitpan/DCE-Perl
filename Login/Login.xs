@@ -162,7 +162,7 @@ sec_login_purge_context(login_context)
   PPCODE:
   {
     error_status_t	status;
-    sec_login_purge_context(login_context, &status);
+    sec_login_purge_context(&login_context, &status);
     sv_setref_pv(ST(0), "DCE::Login", (void*)login_context);
     DCESTATUS;
   }
@@ -174,7 +174,7 @@ sec_login_release_context(login_context)
   PPCODE:
   {
     error_status_t	status;
-    sec_login_release_context(login_context, &status);
+    sec_login_release_context(&login_context, &status);
     sv_setref_pv(ST(0), "DCE::Login", (void*)login_context);
     DCESTATUS;
   }
@@ -186,7 +186,7 @@ sec_login_DESTROY(login_context)
   PPCODE:
   {
     error_status_t	status;
-    sec_login_release_context(login_context, &status);
+    sec_login_release_context(&login_context, &status);
   }
 
 void

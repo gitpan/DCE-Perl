@@ -1,4 +1,16 @@
-=item 0.14
+
+=item 0.15 - 06/22/97
+
+applied patches from Paul Whaley <whaley@ucs.ubc.ca> for solaris sanity
+and other cleanups
+
+got rid of ugly `config' file
+
+fix bug in DCE::ACL::entry->entry_info to use SvOK not SvTRUE thanks to Paul Henson
+
+added configuration tips for DEC from Paul Henson
+
+=item 0.14 11/19/96
 
 added DFS fix to DCE::ACL->bind from Paul Henson
 

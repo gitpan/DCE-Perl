@@ -32,8 +32,13 @@ $printstrings = $aclh->get_printstring($mgr);
 test ++$i, $status;
 
 ($list, $status) = $aclh->lookup($mgr);
-$acl = $list->acls;
+#$acl = $list->acls;
+($acl, $status) = DCE::ACL->init($mgr);
+test ++$i, $status;
 
+$status = $acl->add_any_other_entry(DCE::ACL->perm_read | DCE::ACL->perm_write);
+test ++$i, $status;
+__END__
 $name = $acl->default_realm->{name};
 print "$name\n";
 
